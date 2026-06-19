@@ -1,0 +1,9 @@
+[submodule "apps-repo"]
+	path = apps-repo
+	url = git@github.com:kaansari/apps-repo.git
+[submodule "services-repo"]
+	path = services-repo
+	url = git@github.com:kaansari/services-repo.git
+[submodule "contracts-repo"]
+	path = contracts-repo
+	url = git@github.com:kaansari/contracts-repo.git
