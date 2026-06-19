@@ -1,8 +1,8 @@
 SHELL := /usr/bin/env bash
 
-RENDER_SERVICES := user-service agent-service web-ui admin-ui customer-ui
+RENDER_SERVICES := user-service agent-service web-ui admin-ui customer-ui ats-crawler
 
-.PHONY: help deps test build clean local-check local-start local-stop local-status render-build render-build-user-service render-build-agent-service render-build-web-ui render-build-admin-ui render-build-customer-ui
+.PHONY: help deps test build clean local-check local-start local-stop local-status render-build render-build-user-service render-build-agent-service render-build-web-ui render-build-admin-ui render-build-customer-ui render-build-ats-crawler
 
 help:
 	@printf 'Ceerat Render build helpers\n\n'
@@ -57,6 +57,9 @@ render-build-admin-ui:
 
 render-build-customer-ui:
 	@./scripts/render-build-customer-ui.sh
+
+render-build-ats-crawler:
+	@./scripts/render-build-ats-crawler.sh
 
 clean:
 	@rm -rf bin

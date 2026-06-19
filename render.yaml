@@ -184,3 +184,26 @@ services:
           property: hostport
       - key: SESSION_SECRET
         generateValue: true
+
+  - type: cron
+    name: ceerat-ats-crawler
+    runtime: go
+    schedule: "*/30 * * * *"
+    buildCommand: ./scripts/render-build-ats-crawler.sh
+    startCommand: ./bin/ceerat-ats-crawler -greenhouse-config=atscrawler/config/greenhouse-companies.csv -import -ceerat-service-addr=$CEERAT_SERVICE_ADDR
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: CEERAT_ENV
+        value: production
+      - key: CEERAT_SERVICE_ADDR
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: CEERAT_AGENT_TOKEN
+        sync: false
+      - key: CEERAT_AGENT_EMAIL
+        sync: false
+      - key: CEERAT_AGENT_PASSWORD
+        sync: false

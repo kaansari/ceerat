@@ -5,7 +5,7 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 cmd="${1:-all}"
-services=(user-service agent-service web-ui admin-ui customer-ui)
+services=(user-service agent-service web-ui admin-ui customer-ui ats-crawler)
 
 ensure_submodules
 sync_workspace
@@ -21,11 +21,11 @@ case "$cmd" in
       build_service "$service"
     done
     ;;
-  user-service|agent-service|web-ui|admin-ui|customer-ui)
+  user-service|agent-service|web-ui|admin-ui|customer-ui|ats-crawler)
     build_service "$cmd"
     ;;
   *)
-    echo "Usage: $0 [deps|test|all|user-service|agent-service|web-ui|admin-ui|customer-ui]" >&2
+    echo "Usage: $0 [deps|test|all|user-service|agent-service|web-ui|admin-ui|customer-ui|ats-crawler]" >&2
     exit 2
     ;;
 esac

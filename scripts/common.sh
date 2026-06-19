@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BIN_DIR="$ROOT_DIR/bin"
 RUN_DIR="$ROOT_DIR/.run"
 LOG_DIR="$ROOT_DIR/logs"
+export GOCACHE="${GOCACHE:-$ROOT_DIR/.local/go-build-cache}"
 MODULE_PATHS=(
   "contracts-repo/packages/ceerat-contracts"
   "services-repo/services/ceerat-user-service"
@@ -12,6 +13,7 @@ MODULE_PATHS=(
   "apps-repo/apps/ceerat-web-ui"
   "apps-repo/apps/ceerat-admin-ui"
   "apps-repo/apps/ceerat-customer-ui"
+  "atscrawler"
 )
 
 load_env_file() {
@@ -75,7 +77,7 @@ ADMIN_PID="$RUN_DIR/admin-ui.pid"
 CUSTOMER_PID="$RUN_DIR/customer-ui.pid"
 
 ensure_dirs() {
-  mkdir -p "$BIN_DIR" "$RUN_DIR" "$LOG_DIR" "$(dirname "$CEERAT_PGDATA")"
+  mkdir -p "$BIN_DIR" "$RUN_DIR" "$LOG_DIR" "$GOCACHE" "$(dirname "$CEERAT_PGDATA")"
 }
 
 is_pid_running() {
@@ -109,9 +111,10 @@ service_path() {
     web-ui) echo "apps-repo/apps/ceerat-web-ui" ;;
     admin-ui) echo "apps-repo/apps/ceerat-admin-ui" ;;
     customer-ui) echo "apps-repo/apps/ceerat-customer-ui" ;;
+    ats-crawler) echo "atscrawler" ;;
     *)
       echo "Unknown service: ${1:-}" >&2
-      echo "Expected one of: user-service agent-service web-ui admin-ui customer-ui" >&2
+      echo "Expected one of: user-service agent-service web-ui admin-ui customer-ui ats-crawler" >&2
       return 2
       ;;
   esac
@@ -124,6 +127,7 @@ service_binary() {
     web-ui) echo "ceerat-web-ui" ;;
     admin-ui) echo "ceerat-admin-ui" ;;
     customer-ui) echo "ceerat-customer-ui" ;;
+    ats-crawler) echo "ceerat-ats-crawler" ;;
     *)
       echo "Unknown service: ${1:-}" >&2
       return 2
@@ -145,16 +149,26 @@ ensure_submodules() {
 sync_workspace() {
   local module_path
 
+  ensure_dirs
   for module_path in "${MODULE_PATHS[@]}"; do
-    (cd "$ROOT_DIR/$module_path" && go mod download)
+    if [[ "$module_path" == "atscrawler" ]]; then
+      (cd "$ROOT_DIR/$module_path" && GOWORK=off go mod download)
+    else
+      (cd "$ROOT_DIR/$module_path" && go mod download)
+    fi
   done
 }
 
 test_workspace() {
   local module_path
 
+  ensure_dirs
   for module_path in "${MODULE_PATHS[@]}"; do
-    (cd "$ROOT_DIR/$module_path" && go test ./...)
+    if [[ "$module_path" == "atscrawler" ]]; then
+      (cd "$ROOT_DIR/$module_path" && GOWORK=off go test ./...)
+    else
+      (cd "$ROOT_DIR/$module_path" && go test ./...)
+    fi
   done
 }
 
@@ -167,6 +181,10 @@ build_service() {
   binary_name="$(service_binary "$service")"
 
   mkdir -p "$BIN_DIR"
-  cd "$ROOT_DIR"
-  go build -o "$BIN_DIR/$binary_name" "./$module_path"
+  if [[ "$service" == "ats-crawler" ]]; then
+    (cd "$ROOT_DIR/$module_path" && GOWORK=off go build -o "$BIN_DIR/$binary_name" ./cmd/ceerat-ats-crawler)
+  else
+    cd "$ROOT_DIR"
+    go build -o "$BIN_DIR/$binary_name" "./$module_path"
+  fi
 }

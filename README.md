@@ -10,6 +10,7 @@ This repository is the Render deployment root for Ceerat. The application code l
 - `apps-repo/apps/ceerat-customer-ui`
 - `services-repo/services/ceerat-user-service`
 - `contracts-repo/packages/ceerat-contracts`
+- `atscrawler`
 
 ## Local setup
 
@@ -48,6 +49,7 @@ The root repo is only the deployment/build wrapper. The application source is in
 - `apps-repo`
 - `services-repo`
 - `contracts-repo`
+- `atscrawler`
 
 ### Environment files
 
@@ -152,6 +154,7 @@ Build a single service:
 ```sh
 make render-build SERVICE=user-service
 make render-build-web-ui
+make render-build-ats-crawler
 ```
 
 ### Run locally
@@ -171,6 +174,15 @@ This builds the same binaries Render uses, then starts:
 - `ceerat-web-ui`
 - `ceerat-admin-ui`
 - `ceerat-customer-ui`
+
+The ATS crawler is not a long-running local service. After the user service is running, import configured Greenhouse jobs with:
+
+```sh
+./bin/ceerat-ats-crawler \
+  -greenhouse-config=atscrawler/config/greenhouse-companies.csv \
+  -import \
+  -ceerat-service-addr="$USER_SERVICE_ADDR"
+```
 
 Check status:
 
@@ -245,6 +257,7 @@ tail -f logs/web-ui.log
 - PostgreSQL database: `ceerat-postgres`
 - Private services: `ceerat-user-service`, `ceerat-agent-service`
 - Web services: `ceerat-web-ui`, `ceerat-admin-ui`, `ceerat-customer-ui`
+- Cron jobs: `ceerat-ats-crawler`
 
 Create a Render Blueprint from this repository. Render runs the service-specific scripts in `scripts/` and starts the matching binary from `./bin`.
 
@@ -253,6 +266,37 @@ Set these secret values in Render after creating the Blueprint:
 - `INITIAL_ADMIN_PASSWORD` on `ceerat-user-service`
 - `OPENAI_API_KEY` on `ceerat-agent-service`
 - `TYPESENSE_HOST`, `TYPESENSE_PORT`, and `TYPESENSE_API_KEY` on `ceerat-user-service` if Typesense is enabled
+- `CEERAT_AGENT_TOKEN`, or `CEERAT_AGENT_EMAIL` and `CEERAT_AGENT_PASSWORD`, on `ceerat-ats-crawler`
+
+## ATS crawler
+
+`ceerat-ats-crawler` is deployed as a Render cron job. It builds from the `atscrawler` submodule and writes:
+
+```text
+./bin/ceerat-ats-crawler
+```
+
+The cron job runs every 30 minutes:
+
+```text
+*/30 * * * *
+```
+
+Render starts it with:
+
+```sh
+./bin/ceerat-ats-crawler \
+  -greenhouse-config=atscrawler/config/greenhouse-companies.csv \
+  -import \
+  -ceerat-service-addr=$CEERAT_SERVICE_ADDR
+```
+
+`CEERAT_SERVICE_ADDR` is wired from `ceerat-user-service` with Render `fromService.property: hostport`, so the crawler imports jobs over the private gRPC network.
+
+For authentication, set either:
+
+- `CEERAT_AGENT_TOKEN`
+- or `CEERAT_AGENT_EMAIL` and `CEERAT_AGENT_PASSWORD`
 
 ## Typesense
 
