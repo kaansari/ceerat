@@ -1,0 +1,106 @@
+databases:
+  - name: ceerat-postgres
+    databaseName: ceerat
+    user: ceerat
+    plan: basic-256mb
+
+services:
+  - type: web
+    name: ceerat-customer-ui
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-customer-ui.sh
+    startCommand: ./bin/ceerat-customer-ui
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: GRPC_BACKEND_ADDR
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: SESSION_SECRET
+        generateValue: true
+
+  - type: web
+    name: ceerat-web-ui
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-web-ui.sh
+    startCommand: ./bin/ceerat-web-ui
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: GRPC_BACKEND_ADDR
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+
+  - type: web
+    name: ceerat-admin-ui
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-admin-ui.sh
+    startCommand: ./bin/ceerat-admin-ui
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: GRPC_BACKEND_ADDR
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: SESSION_SECRET
+        generateValue: true
+
+  - type: pserv
+    name: ceerat-user-service
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-user-service.sh
+    startCommand: ./bin/ceerat-user-service
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: ceerat-postgres
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: ceerat-postgres
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: ceerat-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: ceerat-postgres
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: ceerat-postgres
+          property: database
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+
+  - type: pserv
+    name: ceerat-agent-service
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-agent-service.sh
+    startCommand: ./bin/ceerat-agent-service
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: USER_SERVICE_ADDR
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: OPENAI_API_KEY
+        sync: false
