@@ -7,3 +7,6 @@
 [submodule "contracts-repo"]
 	path = contracts-repo
 	url = git@github.com:kaansari/contracts-repo.git
+[submodule "atscrawler"]
+	path = atscrawler
+	url = https://github.com/kaansari/atscrawler.git
