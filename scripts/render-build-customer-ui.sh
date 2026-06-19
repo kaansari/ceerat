@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-git submodule update --init --recursive
-
-go work sync
-go mod download
-
-go build -o bin/ceerat-customer-ui ./apps-repo/apps/ceerat-customer-ui
+"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/render-build.sh" customer-ui

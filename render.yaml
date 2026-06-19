@@ -5,64 +5,21 @@ databases:
     plan: basic-256mb
 
 services:
-  - type: web
-    name: ceerat-customer-ui
-    runtime: go
-    plan: starter
-    buildCommand: ./scripts/render-build-customer-ui.sh
-    startCommand: ./bin/ceerat-customer-ui
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: GRPC_BACKEND_ADDR
-        fromService:
-          type: pserv
-          name: ceerat-user-service
-          property: hostport
-      - key: SESSION_SECRET
-        generateValue: true
-
-  - type: web
-    name: ceerat-web-ui
-    runtime: go
-    plan: starter
-    buildCommand: ./scripts/render-build-web-ui.sh
-    startCommand: ./bin/ceerat-web-ui
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: GRPC_BACKEND_ADDR
-        fromService:
-          type: pserv
-          name: ceerat-user-service
-          property: hostport
-
-  - type: web
-    name: ceerat-admin-ui
-    runtime: go
-    plan: starter
-    buildCommand: ./scripts/render-build-admin-ui.sh
-    startCommand: ./bin/ceerat-admin-ui
-    envVars:
-      - key: APP_ENV
-        value: production
-      - key: GRPC_BACKEND_ADDR
-        fromService:
-          type: pserv
-          name: ceerat-user-service
-          property: hostport
-      - key: SESSION_SECRET
-        generateValue: true
-
   - type: pserv
     name: ceerat-user-service
     runtime: go
     plan: starter
     buildCommand: ./scripts/render-build-user-service.sh
-    startCommand: ./bin/ceerat-user-service
+    startCommand: PORT=$CEERAT_SERVICE_PORT ./bin/ceerat-user-service
     envVars:
       - key: APP_ENV
         value: production
+      - key: CEERAT_ENV
+        value: production
+      - key: CEERAT_SERVICE_PORT
+        value: "50051"
+      - key: CEERAT_USER_ADMIN_PORT
+        value: "8081"
       - key: DB_HOST
         fromDatabase:
           name: ceerat-postgres
@@ -85,7 +42,29 @@ services:
           property: database
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_AUTH_ENABLED
+        value: "true"
+      - key: INITIAL_ADMIN_EMAIL
+        sync: false
       - key: INITIAL_ADMIN_PASSWORD
+        sync: false
+      - key: INITIAL_ADMIN_NAME
+        sync: false
+      - key: TYPESENSE_HOST
+        sync: false
+      - key: TYPESENSE_PORT
+        sync: false
+      - key: TYPESENSE_PROTOCOL
+        sync: false
+      - key: TYPESENSE_API_KEY
+        sync: false
+      - key: TYPESENSE_COLLECTION_JOBS
+        value: jobs
+      - key: TYPESENSE_DISABLED
+        value: "false"
+      - key: GREENHOUSE_JOB_BOARD_API_KEY
+        sync: false
+      - key: CEERAT_GREENHOUSE_JOB_BOARD_API_KEY
         sync: false
 
   - type: pserv
@@ -93,14 +72,115 @@ services:
     runtime: go
     plan: starter
     buildCommand: ./scripts/render-build-agent-service.sh
-    startCommand: ./bin/ceerat-agent-service
+    startCommand: PORT=$CEERAT_AGENT_PORT ./bin/ceerat-agent-service
     envVars:
       - key: APP_ENV
         value: production
+      - key: CEERAT_ENV
+        value: production
+      - key: CEERAT_AGENT_PORT
+        value: "8088"
       - key: USER_SERVICE_ADDR
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: CEERAT_USER_SERVICE_ADDR
         fromService:
           type: pserv
           name: ceerat-user-service
           property: hostport
       - key: OPENAI_API_KEY
         sync: false
+      - key: OPENAI_MODEL
+        sync: false
+
+  - type: web
+    name: ceerat-web-ui
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-web-ui.sh
+    startCommand: CEERAT_WEB_UI_PORT=$PORT CEERAT_AGENT_BASE_URL=http://$CEERAT_AGENT_SERVICE_HOSTPORT AGENT_BASE_URL=http://$CEERAT_AGENT_SERVICE_HOSTPORT ./bin/ceerat-web-ui
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: CEERAT_ENV
+        value: production
+      - key: CEERAT_API_BASE_URL
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: API_BASE_URL
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: CEERAT_AGENT_SERVICE_HOSTPORT
+        fromService:
+          type: pserv
+          name: ceerat-agent-service
+          property: hostport
+
+  - type: web
+    name: ceerat-admin-ui
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-admin-ui.sh
+    startCommand: CEERAT_ADMIN_UI_PORT=$PORT CEERAT_ADMIN_API_BASE_URL=http://$CEERAT_USER_SERVICE_HOST:$CEERAT_USER_ADMIN_PORT ./bin/ceerat-admin-ui
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: CEERAT_ENV
+        value: production
+      - key: CEERAT_API_BASE_URL
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: API_BASE_URL
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: CEERAT_USER_SERVICE_HOST
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: host
+      - key: CEERAT_USER_ADMIN_PORT
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          envVarKey: CEERAT_USER_ADMIN_PORT
+      - key: SESSION_SECRET
+        generateValue: true
+
+  - type: web
+    name: ceerat-customer-ui
+    runtime: go
+    plan: starter
+    buildCommand: ./scripts/render-build-customer-ui.sh
+    startCommand: CEERAT_CUSTOMER_UI_PORT=$PORT CEERAT_AGENT_BASE_URL=http://$CEERAT_AGENT_SERVICE_HOSTPORT AGENT_BASE_URL=http://$CEERAT_AGENT_SERVICE_HOSTPORT ./bin/ceerat-customer-ui
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: CEERAT_ENV
+        value: production
+      - key: CEERAT_API_BASE_URL
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: API_BASE_URL
+        fromService:
+          type: pserv
+          name: ceerat-user-service
+          property: hostport
+      - key: CEERAT_AGENT_SERVICE_HOSTPORT
+        fromService:
+          type: pserv
+          name: ceerat-agent-service
+          property: hostport
+      - key: SESSION_SECRET
+        generateValue: true

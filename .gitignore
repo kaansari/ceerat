@@ -1,1 +1,6 @@
 go.work.sum
+.env
+.local/
+.run/
+bin/
+logs/
